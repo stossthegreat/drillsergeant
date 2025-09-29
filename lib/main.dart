@@ -58,7 +58,7 @@ class DrillSergeantApp extends StatelessWidget {
             GoRoute(path: '/habits', builder: (c, s) => const NewHabitsScreen()),
             
             // Old screens (backup)
-            GoRoute(path: '/home-old', builder: (c, s) => OldHomeScreen(refreshTrigger: s.uri.queryParameters['refresh'])),
+            GoRoute(path: '/home-old', builder: (c, s) => NewHomeScreen(refreshTrigger: s.uri.queryParameters['refresh'])),
             GoRoute(path: '/habits-old', builder: (c, s) => const HabitsScreen()),
             
             // Other screens unchanged
