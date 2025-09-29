@@ -92,16 +92,23 @@ class _NewHomeScreenState extends State<NewHomeScreen> with RouteAware {
     }
   }
 
-  Future<void> _toggleTodayItemCompletion(Map<String, dynamic> item) async {
+  Future<void> _completeTodayItem(Map<String, dynamic> item) async {
     try {
       if (item['type'] == 'habit') {
         await apiClient.tickHabit(item['id']);
       } else {
-        await apiClient.completeTask(item['id']);
+        await apiClient.tickHabit(item['id']); // Use tickHabit for tasks too
       }
       
+      // Remove from today backend list but keep in UI as completed
+      await apiClient.deselectForToday(item['id']);
+      
       setState(() {
-        _loadData(); // Refresh the data to show updated state
+        // Mark as completed instead of removing
+        final index = todayItems.indexWhere((i) => i['id'] == item['id']);
+        if (index != -1) {
+          todayItems[index]['completed'] = true;
+        }
       });
       
       if (mounted) {
@@ -110,7 +117,6 @@ class _NewHomeScreenState extends State<NewHomeScreen> with RouteAware {
         );
       }
     } catch (e) {
-      print('❌ Error toggling completion: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error completing item: $e')),
@@ -119,32 +125,23 @@ class _NewHomeScreenState extends State<NewHomeScreen> with RouteAware {
     }
   }
 
-  Future<void> _loadData() async {
+  Future<void> _removeTodayItem(Map<String, dynamic> item) async {
     try {
-      final brief = await apiClient.getBriefToday();
+      await apiClient.deselectForToday(item['id']);
       setState(() {
-        briefData = brief;
-        todayItems = brief['today'] ?? [];
+        todayItems.removeWhere((i) => i['id'] == item['id']);
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Removed ${item['name']} from today')),
+        );
+      }
     } catch (e) {
-      print('❌ Error loading data: $e');
-    }
-  }
-
-  bool _isItemCompletedToday(Map<String, dynamic> item) {
-    if (item['type'] == 'habit') {
-      // For habits, check if lastTick is today
-      final lastTick = item['lastTick'];
-      if (lastTick == null) return false;
-      
-      final today = DateTime.now();
-      final lastTickDate = DateTime.parse(lastTick);
-      return lastTickDate.year == today.year && 
-             lastTickDate.month == today.month && 
-             lastTickDate.day == today.day;
-    } else {
-      // For tasks, check completed field
-      return item['completed'] == true;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error removing item: $e')),
+        );
+      }
     }
   }
 
@@ -162,14 +159,6 @@ class _NewHomeScreenState extends State<NewHomeScreen> with RouteAware {
     final weeklyTarget = briefData['weeklyTarget'] ?? {};
     final streaksSummary = briefData['streaksSummary'] ?? {};
     final nudges = briefData['nudges'] ?? [];
-
-    // Calculate completion stats
-    final completedHabits = todayItems.where((item) => 
-      item['type'] == 'habit' && _isItemCompletedToday(item)).length;
-    final totalHabits = todayItems.where((item) => item['type'] == 'habit').length;
-    final completedTasks = todayItems.where((item) => 
-      item['type'] == 'task' && _isItemCompletedToday(item)).length;
-    final totalTasks = todayItems.where((item) => item['type'] == 'task').length;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
@@ -517,86 +506,6 @@ class _NewHomeScreenState extends State<NewHomeScreen> with RouteAware {
             
             const SizedBox(height: 24),
             
-            // Today's Progress Summary
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2D1B69), Color(0xFF11998E)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Today\'s Progress',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              '$completedHabits/$totalHabits',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              'Habits',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 1,
-                        height: 40,
-                        color: Colors.white.withOpacity(0.3),
-                      ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              '$completedTasks/$totalTasks',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              'Tasks',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
             // Today Items Section
             GlassCard(
               child: Padding(
@@ -644,7 +553,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> with RouteAware {
                       )
                     else
                       ...todayItems.map((item) {
-                        final isCompleted = _isItemCompletedToday(item);
+                        final isCompleted = item['completed'] == true;
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: Row(
@@ -700,7 +609,7 @@ class _NewHomeScreenState extends State<NewHomeScreen> with RouteAware {
                               if (!isCompleted) ...[
                                 GlassButton.ghost(
                                   'Complete',
-                                  onPressed: () => _toggleTodayItemCompletion(item),
+                                  onPressed: () => _completeTodayItem(item),
                                   icon: const Icon(Icons.check),
                                 ),
                                 const SizedBox(width: 4),
@@ -774,25 +683,5 @@ class _NewHomeScreenState extends State<NewHomeScreen> with RouteAware {
         ),
       ),
     );
-  }
-
-  Future<void> _removeTodayItem(Map<String, dynamic> item) async {
-    try {
-      await apiClient.deselectForToday(item['id']);
-      setState(() {
-        todayItems.removeWhere((i) => i['id'] == item['id']);
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Removed ${item['name']} from today')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error removing item: $e')),
-        );
-      }
-    }
   }
 }
