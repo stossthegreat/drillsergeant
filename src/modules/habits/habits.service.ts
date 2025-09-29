@@ -46,7 +46,16 @@ export class HabitsService {
       const scheduleDays = schedule.days;
       
       // Check if today matches the schedule
-      if (scheduleDays.includes('daily')) return true;
+      if (scheduleDays.includes('daily')) {
+        // Check if it's an everyN schedule with duration
+        if (schedule.everyN && schedule.startDate) {
+          const startDate = new Date(schedule.startDate);
+          const daysDiff = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+          const everyN = schedule.everyN || 1;
+          return daysDiff % everyN === 0;
+        }
+        return true;
+      }
       if (scheduleDays.includes(dayName)) return true;
       if (scheduleDays.includes(dayAbbr)) return true;
       

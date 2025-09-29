@@ -142,6 +142,29 @@ class _NewHabitsScreenState extends State<NewHabitsScreen> with TickerProviderSt
   }
 
   Future<void> _saveItem(Map<String, dynamic> data) async {
+  // Helper function to build schedule from frequency
+  Map<String, dynamic> _buildScheduleFromFrequency(Map<String, dynamic> data) {
+    final frequency = data['frequency'] ?? 'daily';
+    final time = data['reminderTime'] ?? '08:00';
+    
+    switch (frequency) {
+      case 'daily':
+        return { 'time': time, 'days': ['daily'] };
+      case 'weekdays':
+        return { 'time': time, 'days': ['weekdays'] };
+      case 'everyN':
+        final everyN = int.tryParse(data['everyN']?.toString() ?? '2') ?? 2;
+        return { 
+          'time': time, 
+          'days': ['daily'], 
+          'everyN': everyN,
+          'startDate': DateTime.now().toIso8601String()
+        };
+      default:
+        return { 'time': time, 'days': ['daily'] };
+    }
+  }
+
     if (data['name'].toString().trim().isEmpty) return;
     
     try {
@@ -197,7 +220,7 @@ class _NewHabitsScreenState extends State<NewHabitsScreen> with TickerProviderSt
           // CREATE HABIT (existing logic)
           created = await apiClient.createHabit({
             'title': data['name'].toString().trim(),
-            'schedule': { 'type': 'daily' },
+            'schedule': _buildScheduleFromFrequency(data),
             'context': { 'difficulty': data['intensity'] },
             'color': data['color'],
             'reminderEnabled': data['reminderOn'],

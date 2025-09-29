@@ -11,7 +11,7 @@ import 'screens/chat_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/design_gallery.dart';
 import 'widgets/root_shell.dart';
-import 'screens/onboarding_screen.dart';
+import 'screens/drill_os_onboarding.dart';
 import 'screens/habit_detail_screen.dart';
 import 'screens/anti_habit_detail_screen.dart';
 import 'services/api_client.dart';
@@ -43,7 +43,13 @@ class DrillSergeantApp extends StatelessWidget {
       initialLocation: '/onboarding',
       routes: [
         GoRoute(path: '/design', builder: (c, s) => const DesignGallery()),
-        GoRoute(path: '/onboarding', builder: (c, s) => const OnboardingScreen()),
+        GoRoute(
+          path: '/onboarding',
+          builder: (c, s) => DrillOSOnboarding(
+            onComplete: () => c.go('/home'),
+            onLogin: () => print('🔐 Login requested'),
+          ),
+        ),
         ShellRoute(
           builder: (context, state, child) => RootShell(child: child),
           routes: [
@@ -52,7 +58,7 @@ class DrillSergeantApp extends StatelessWidget {
             GoRoute(path: '/habits', builder: (c, s) => const NewHabitsScreen()),
             
             // Old screens (backup)
-            GoRoute(path: '/home-old', builder: (c, s) => HomeScreen(refreshTrigger: s.uri.queryParameters['refresh'])),
+            GoRoute(path: '/home-old', builder: (c, s) => OldHomeScreen(refreshTrigger: s.uri.queryParameters['refresh'])),
             GoRoute(path: '/habits-old', builder: (c, s) => const HabitsScreen()),
             
             // Other screens unchanged

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../design/glass.dart';
 
-class HomeScreen extends StatefulWidget {
+class OldHomeScreen extends StatefulWidget {
   final String? refreshTrigger;
   
-  const HomeScreen({super.key, this.refreshTrigger});
+  const OldHomeScreen({super.key, this.refreshTrigger});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<OldHomeScreen> createState() => _OldHomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with RouteAware {
+class _OldHomeScreenState extends State<OldHomeScreen> with RouteAware {
   Map<String, dynamic> briefData = {};
   List<dynamic> todayItems = [];
   bool isLoading = true;
@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   @override
-  void didUpdateWidget(HomeScreen oldWidget) {
+  void didUpdateWidget(OldHomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Check if refresh trigger changed
     if (widget.refreshTrigger != null && 
